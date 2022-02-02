@@ -1,6 +1,6 @@
 {
   "name": "wikipedia-tas",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Wikipedia TAS machine; speedrun from one page to another!",
   "main": "index.js",
   "bin": "index.js",

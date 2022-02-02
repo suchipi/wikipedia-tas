@@ -33,10 +33,11 @@ console.log("");
   const startTime = Date.now();
 
   const visited = new Set();
+  visited.add(start);
 
   while (true) {
     const selector =
-      '#mw-content-text p a:not(sup a):not(:contains("["))' +
+      '#mw-content-text p a[href^="/"]:not(sup a):not(#coordinates a):not(:contains("["))' +
       Array.from(visited)
         .map((loc) => `:not([href=${JSON.stringify(loc)}])`)
         .join("");
@@ -52,8 +53,16 @@ console.log("");
           console.log(`Arrived at '${end}'!`);
           console.log("");
           console.log(`Completed in ${endTime - startTime}ms`);
+          console.log("");
+          console.log(`I visited ${visited.size} pages along the way!`);
+          console.log("Here's a list of them:");
+          console.log("");
+          Array.from(visited).forEach((url) =>
+            console.log("https://en.wikipedia.org" + url)
+          );
           process.exit(0);
         }
+
         visited.add(location.pathname);
       })
       .asPromise();
