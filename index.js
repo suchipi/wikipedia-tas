@@ -37,7 +37,13 @@ console.log("");
 
   while (true) {
     const selector =
-      '#mw-content-text p a[href^="/"]:not(sup a):not(#coordinates a):not(:contains("["))' +
+      [
+        '#mw-content-text p a[href^="/"]' +
+          ":not(sup a)" +
+          ":not(#coordinates a)" +
+          ':not(:contains("["))' +
+          ':not([href^="/wiki/Help:"])',
+      ].join("") +
       Array.from(visited)
         .map((loc) => `:not([href=${JSON.stringify(loc)}])`)
         .join("");
