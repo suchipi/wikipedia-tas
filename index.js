@@ -1,8 +1,15 @@
 #!/usr/bin/env node
-const py = require("pypress")();
+const puppeteer = require("puppeteer");
 
-const start = process.argv[2] || "/wiki/Super_Mario_64";
-const end = process.argv[3] || "/wiki/Philosophy";
+let start = process.argv[2] || "/wiki/Super_Mario_64";
+if (!start.startsWith("/")) {
+  start = "/" + start;
+}
+
+let end = process.argv[3] || "/wiki/Philosophy";
+if (!end.startsWith("/")) {
+  end = "/" + end;
+}
 
 console.log(`Starting wikipedia TAS from ${start} to ${end}.`);
 console.log(
@@ -19,17 +26,37 @@ console.log(
   "And, if you've already visited a page in this run, skip any links to it (click the next link on the page)."
 );
 console.log("");
-console.log("A computer-controlled browser will open in 5 seconds.");
-console.log("");
 
 (async () => {
-  await new Promise((resolve) => setTimeout(resolve, 5000));
+  let waitMs = process.env.WIKIPEDIA_TAS_WAIT_MS
+    ? parseInt(process.env.WIKIPEDIA_TAS_WAIT_MS)
+    : 5000;
+  if (Number.isNaN(waitMs)) {
+    console.warn(
+      `Invalid WIKIPEDIA_TAS_WAIT_MS: ${JSON.stringify(
+        process.env.WIKIPEDIA_TAS_WAIT_MS
+      )}. Using instead the default (5000).`
+    );
+    waitMs = 5000;
+  }
 
-  py.launch({ headless: false });
+  console.log(
+    `A computer-controlled browser will open in ${
+      waitMs % 1000 === 0
+        ? `${waitMs / 1000} seconds`
+        : `${waitMs} milliseconds`
+    }. Set environment variable 'WIKIPEDIA_TAS_WAIT_MS' to override this.`
+  );
+  console.log("");
 
-  py.goto("https://en.wikipedia.org" + start);
+  await new Promise((resolve) => setTimeout(resolve, waitMs));
 
-  await py.asPromise();
+  const browser = await puppeteer.launch({ headless: false });
+
+  const page = await browser.newPage();
+
+  await page.goto("https://en.wikipedia.org" + start);
+
   const startTime = Date.now();
 
   const visited = new Set();
@@ -41,36 +68,37 @@ console.log("");
         '#mw-content-text p a[href^="/"]' +
           ":not(sup a)" +
           ":not(#coordinates a)" +
-          ':not(:contains("["))' +
           ':not([href^="/wiki/Help:"])',
       ].join("") +
       Array.from(visited)
         .map((loc) => `:not([href=${JSON.stringify(loc)}])`)
         .join("");
 
-    py.get(selector).first().focus();
-    py.keyPress("Enter");
+    const anchorElement = await page.$(selector);
+    if (anchorElement == null) {
+      throw new Error("Couldn't find a link in the article!");
+    }
+    await anchorElement.focus();
 
-    await py
-      .location()
-      .then(({ lastReturnValue: location }) => {
-        if (location.pathname === end) {
-          const endTime = Date.now();
-          console.log(`Arrived at '${end}'!`);
-          console.log("");
-          console.log(`Completed in ${endTime - startTime}ms`);
-          console.log("");
-          console.log(`I visited ${visited.size} pages along the way!`);
-          console.log("Here's a list of them:");
-          console.log("");
-          Array.from(visited).forEach((url) =>
-            console.log("https://en.wikipedia.org" + url)
-          );
-          process.exit(0);
-        }
+    await Promise.all([page.keyboard.press("Enter"), page.waitForNavigation()]);
 
-        visited.add(location.pathname);
-      })
-      .asPromise();
+    const location = new URL(page.url());
+
+    if (location.pathname === end) {
+      const endTime = Date.now();
+      console.log(`Arrived at '${end}'!`);
+      console.log("");
+      console.log(`Completed in ${endTime - startTime}ms`);
+      console.log("");
+      console.log(`I visited ${visited.size} pages along the way!`);
+      console.log("Here's a list of them:");
+      console.log("");
+      Array.from(visited).forEach((url) =>
+        console.log("https://en.wikipedia.org" + url)
+      );
+      process.exit(0);
+    }
+
+    visited.add(location.pathname);
   }
 })().catch(console.error);
