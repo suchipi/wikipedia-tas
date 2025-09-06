@@ -67,8 +67,10 @@ console.log("");
       [
         '#mw-content-text p a[href^="/"]' +
           ":not(sup a)" +
+          ":not(table a)" +
           ":not(#coordinates a)" +
-          ':not([href^="/wiki/Help:"])',
+          ':not([href^="/wiki/Help:"])' +
+          ':not([title$="(page does not exist)"])',
       ].join("") +
       Array.from(visited)
         .map((loc) => `:not([href=${JSON.stringify(loc)}])`)
