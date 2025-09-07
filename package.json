@@ -11,6 +11,7 @@
   "author": "Lily Scott <me@suchipi.com>",
   "license": "MIT",
   "dependencies": {
+    "clefairy": "^2.1.0",
     "puppeteer": "^24.19.0",
     "string-dedent": "^3.0.2"
   }
